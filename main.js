@@ -10,6 +10,7 @@ app.use(bodyParser.json(), cors());
 app.post('/login', function (req, res) {
 	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
 		res.header("Access-Control-Allow-Origin", "http://localhost:4200");
+		req.body.password = md5(req.body.password);
 		var info = JSON.parse(data);
 		var index = -1;
 
@@ -38,6 +39,7 @@ app.post('/login', function (req, res) {
 app.post('/register', function (req, res) {
 	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
 		res.header("Access-Control-Allow-Origin", "http://localhost:4200");
+		req.body.password = md5(req.body.password);
 		var info = JSON.parse(data);
 		var flag = true;
 
@@ -72,16 +74,46 @@ app.post('/register', function (req, res) {
 
 app.get('/get', function (req, res) {
 	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
+		res.writeHeader(200, { 'Content-type': 'application/json' });
+		res.end(data);
+	});
+});
+
+app.post('/update/password', function (req, res) {
+	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
 		var info = JSON.parse(data);
-		if (err) {
-			res.writeHeader(200, { 'Content-type': 'application/json' });
-			res.write(JSON.stringify({ status: 'false', message: 'File not found' }));
-			res.end();
-		} else {
-			res.writeHeader(200, { 'Content-type': 'application/json' });
-			res.write(JSON.stringify({ status: 'true', message: 'records sent' }));
-			res.end(info);
+		req.body.current = md5(req.body.current);
+		req.body.new = md5(req.body.new);
+		var flag = false;
+		for (var i = 0; i < info.users.length; i++) {
+			if (req.body.email === info.users[i].email) {
+				if (req.body.current === info.users[i].password) {
+					info.users[i].password = req.body.new;
+					flag = true;
+				} else {
+					flag = false;
+				}
+			}
 		}
+
+		fs.writeFile(__dirname + '/' + "users.json", JSON.stringify(info), function (err) {
+			if (err) {
+				console.log(err.stack());
+				res.writeHeader(200, { 'Content-type': 'application/json' });
+				res.write(JSON.stringify({ status: 'false', message: 'server down' }));
+				res.end();
+			} else if (!flag) {
+				console.log('password not updated')
+				res.writeHeader(200, { 'Content-type': 'application/json' });
+				res.write(JSON.stringify({ status: 'notMatch', message: 'current password not matched' }));
+				res.end();
+			} else {
+				console.log('password updated')
+				res.writeHeader(200, { 'Content-type': 'application/json' });
+				res.write(JSON.stringify({ status: 'true', message: 'password updated' }));
+				res.end();
+			}
+		});
 	});
 });
 
