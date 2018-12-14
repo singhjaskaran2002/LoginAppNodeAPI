@@ -4,6 +4,8 @@ const fs = require('fs');
 var md5 = require('md5');
 var cors = require('cors');
 const bodyParser = require('body-parser');
+var nodemailer = require('nodemailer');
+var jwt = require('jsonwebtoken');
 
 app.use(bodyParser.json(), cors());
 
@@ -23,14 +25,15 @@ app.post('/login', function (req, res) {
 				}
 			}
 		}
-
+		var payload = req.body.email;
+		var SECRET = 'ggd98ff6d46df684f6d4654fd123fg65f4g684g65fd41g56fd4654';
 		if (index < 0) {
 			res.writeHeader(200, { 'Content-type': 'application/json' });
 			res.write(JSON.stringify({ status: 'false', message: 'Invalid email and password' }));
 			res.end();
 		} else {
-			res.writeHeader(200, { 'Content-type': 'application/json' }); false
-			res.write(JSON.stringify({ status: 'true', message: 'Logged in', accessToken: '2002' }));
+			var token = jwt.sign(payload, SECRET);
+			res.send({ status: 'true', message: 'Logged in', accessToken: token });
 			res.end();
 		}
 	});
@@ -76,6 +79,36 @@ app.get('/get', function (req, res) {
 	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
 		res.writeHeader(200, { 'Content-type': 'application/json' });
 		res.end(data);
+	});
+});
+
+app.post('/send/email', function (req, res) {
+	var nodemailer = require('nodemailer');
+	var transporter = nodemailer.createTransport({
+		service: 'gmail',
+		auth: {
+			user: 'js2106588@gmail.com',
+			pass: 'Jaskaran@2002'
+		}
+	});
+	var mailOptions = {
+		from: req.body.from,
+		to: req.body.to,
+		subject: req.body.subject,
+		text: req.body.message
+	};
+	transporter.sendMail(mailOptions, function (error, info) {
+		if (error) {
+			console.log(error);
+			res.writeHeader(200, { 'Content-type': 'application/json' });
+			res.write(JSON.stringify({ status: 'false', message: 'mail not sent' }));
+			res.end();
+		} else {
+			console.log('email successfully sent to: ', req.body.to);
+			res.writeHeader(200, { 'Content-type': 'application/json' });
+			res.write(JSON.stringify({ status: 'true', message: 'mail sent successfully' }));
+			res.end();
+		}
 	});
 });
 
