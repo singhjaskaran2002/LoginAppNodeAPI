@@ -7,41 +7,70 @@ const bodyParser = require('body-parser');
 var nodemailer = require('nodemailer');
 var jwt = require('jsonwebtoken');
 
-app.use(bodyParser.json(), cors());
+app.use(bodyParser.json(), cors({ origin: 'http://localhost:4200' }));
+
+// middleware to authenticate the routes in node.js
+function verifyToken(req, res, next) {
+	// get the authroization from header
+	const bearerHeader = req.headers['authorization'];
+
+	const bearer = bearerHeader.split(' ');
+
+	bearerToken = bearer[1];
+
+	if (typeof bearerToken !== 'undefined') {
+		// assign the token
+		req.token = bearerToken;
+
+		jwt.verify(req.token, 'my-secret-key', function (err, authData) {
+			if (err) {
+				res.status(403).json({ message: 'some error occurred' });
+			} else {
+				req.authData = authData;
+				next();
+			}
+		});
+	} else {
+		res.status(401).json({ message: 'you are not authorized' });
+	}
+}
+
+app.get('/route/protected', verifyToken, function (req, res) {
+	res.json({ message: 'this is secure route', user: req.authData });
+	res.end();
+});
 
 app.post('/login', function (req, res) {
 	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
-		res.header("Access-Control-Allow-Origin", "http://localhost:4200");
 		req.body.password = md5(req.body.password);
 		var info = JSON.parse(data);
-		var index = -1;
+		console.log(req.body.password);
 
-		for (let i = 0; i < info.users.length; i++) {
-			if (req.body.email === info.users[i].email) {
-				if (req.body.password === info.users[i].password) {
-					index = info.users.findIndex(function (item, i) {
-						return item.email === req.body.email;
-					});
-				}
+		var user = info.users.filter(function (item, email) {
+			return item.email === req.body.email;
+		});
+
+		var timeStamp = JSON.stringify(new Date().getTime());
+		var token = jwt.sign({ user: user, timeStamp: timeStamp }, 'my-secret-key', { expiresIn: '0.016666667h' });
+
+		console.log(token);
+
+		if (user.length !== 0) {
+			if (user[0].password === req.body.password) {
+				res.status(200).json({ status: 'true', user: user, accessToken: token });
+			} else {
+				res.status(403).json({ status: 'false', message: 'password not matched' });
 			}
-		}
-		var payload = req.body.email;
-		var SECRET = 'ggd98ff6d46df684f6d4654fd123fg65f4g684g65fd41g56fd4654';
-		if (index < 0) {
-			res.writeHeader(200, { 'Content-type': 'application/json' });
-			res.write(JSON.stringify({ status: 'false', message: 'Invalid email and password' }));
-			res.end();
 		} else {
-			var token = jwt.sign(payload, SECRET);
-			res.send({ status: 'true', message: 'Logged in', accessToken: token });
-			res.end();
+			res.status(404).json({ status: 'false', message: 'enter valid email' });
 		}
+
+		res.end();
 	});
 });
 
 app.post('/register', function (req, res) {
 	fs.readFile(__dirname + '/' + "users.json", function (err, data) {
-		res.header("Access-Control-Allow-Origin", "http://localhost:4200");
 		req.body.password = md5(req.body.password);
 		var info = JSON.parse(data);
 		var flag = true;
