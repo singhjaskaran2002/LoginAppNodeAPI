@@ -4,7 +4,6 @@ const fs = require('fs');
 var md5 = require('md5');
 var cors = require('cors');
 const bodyParser = require('body-parser');
-var nodemailer = require('nodemailer');
 var jwt = require('jsonwebtoken');
 
 app.use(bodyParser.json(), cors({ origin: 'http://localhost:4200' }));

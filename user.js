@@ -5,8 +5,6 @@ var jwt = require('jsonwebtoken');
 
 const con = require('./connection');
 
-
-
 router.post('/register', function (req, res) {
     var user = {
         email: req.body.email,
@@ -56,7 +54,7 @@ router.get('/list', function (req, res) {
 router.post('/send/email', function (req, res) {
     var nodemailer = require('nodemailer');
     var transporter = nodemailer.createTransport({
-        service: 'gmail',
+        service: 'Gmail',
         auth: {
             user: 'js2106588@gmail.com',
             pass: 'Jaskaran@2002'
@@ -66,7 +64,7 @@ router.post('/send/email', function (req, res) {
         from: req.body.from,
         to: req.body.to,
         subject: req.body.subject,
-        text: req.body.message
+        text: req.body.message,
     };
     transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
@@ -76,6 +74,7 @@ router.post('/send/email', function (req, res) {
             res.end();
         } else {
             console.log('email successfully sent to: ', req.body.to);
+            console.log(info);
             res.writeHeader(200, { 'Content-type': 'application/json' });
             res.write(JSON.stringify({ status: 'true', message: 'mail sent successfully' }));
             res.end();
@@ -92,7 +91,7 @@ router.post('/update/password', function (req, res) {
         else {
             if (result.length !== 0) {
                 if (newPassword === result[0].password) {
-                    res.json({status:'samePass', message:'current password matched your new password entered'});
+                    res.json({ status: 'samePass', message: 'current password matched your new password entered' });
                 }
                 else if (enteredPassword !== result[0].password) {
                     res.json({ status: '401', message: 'Current password not matched' });
